@@ -1,9 +1,38 @@
+import { useEffect, useState } from "react/cjs/react.development";
 import RecipeList from "../../component/RecipeList";
-import { useFetch } from "../../hoocks/useFetch";
+import { prejectFirestore } from "../../firebase/config";
 //style
 import "./Home.css";
 export default function Home() {
-  const { data, isPending, error } = useFetch("http://localhost:3000/recipes");
+  const [data, setData] = useState(null);
+  const [isPending, setIsPending] = useState(false);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    setIsPending(true);
+
+    const unsub = prejectFirestore.collection("recipe").onSnapshot(
+      (snapshot) => {
+        if (snapshot.empty) {
+          setError("No recipes to load");
+          setIsPending(false);
+        } else {
+          let result = [];
+          snapshot.docs.forEach((doc) => {
+            result.push({ id: doc.id, ...doc.data() });
+          });
+          setData(result);
+          setIsPending(false);
+        }
+      },
+      (err) => {
+        setError(err.message);
+        setIsPending(false);
+      }
+    );
+
+    return () => unsub();
+  }, []);
 
   return (
     <div className="home">
